@@ -354,12 +354,12 @@ and a right operand as ```self.right```.
 
 The ```__str__``` method of ```Plus```
 makes recursive calls on the ```__str__``` methods of the left 
-and right operands: 
+and right operands:
 
 ```python
     def __str__(self) -> str:
-        """Algebraic notation, fully parenthesized: (left + right)"""
-        return f"({self.left} + {self.right})"
+    """Algebraic notation, fully parenthesized: (left + right)"""
+    return f"({self.value} + {self.right})"
 ```
 
 How can this recursion work?  
@@ -416,10 +416,10 @@ operands.  So does ```eval```:
 
 ```python
     def eval(self) -> "IntConst":
-        """Implementations of eval should return an integer constant."""
-        left_val = self.left.eval()
-        right_val = self.right.eval()
-        return IntConst(left_val.value + right_val.value)
+    """Implementations of eval should return an integer constant."""
+    left_val = self.value.eval()
+    right_val = self.right.eval()
+    return IntConst(left_val.value + right_val.value)
 ```
 
 We'll reorganize evaluation a bit below, but for now 
@@ -706,11 +706,11 @@ class Plus(BinOp):
 We've saved a few lines of repetitive code.  A bigger gain 
 comes from factoring the `__str__` and `__repr__` methods into
 `BinOp` and removing them from `Plus`.  The `__str__` class
-in `BinOp` can be: 
+in `BinOp` can be:
 
 ```python
     def __str__(self) -> str:
-        return f"({self.left} {self.symbol} {self.right})"
+    return f"({self.value} {self.symbol} {self.right})"
 ```
 
 Now the `__str__` method can be removed from the `Plus` class. 
@@ -762,15 +762,14 @@ Then the  concrete subclasses like `Plus` can override it, for example
 ```
 
 This is a good deal simpler than `eval`, which we can now factor 
-into the `BinOp` class like this: 
-
+into the `BinOp` class like this:
 
 ```python
     def eval(self) -> "IntConst":
-        """Each concrete subclass must define _apply(int, int)->int"""
-        left_val = self.left.eval()
-        right_val = self.right.eval()
-        return IntConst(self._apply(left_val.value, right_val.value))
+    """Each concrete subclass must define _apply(int, int)->int"""
+    left_val = self.value.eval()
+    right_val = self.right.eval()
+    return IntConst(self._apply(left_val.value, right_val.value))
 ```
 
 At this point our ```Plus``` and ```Times``` classes are short and clear.
@@ -1283,10 +1282,10 @@ The ```eval``` method of ```Assign``` evaluates its right side but
 not its left side:
 
 ```python
-    def eval(self) -> IntConst: 
-        r_val = self.right.eval()
-        self.left.assign(r_val)
-        return r_val
+    def eval(self) -> IntConst:
+    r_val = self.right.eval()
+    self.value.assign(r_val)
+    return r_val
 ``` 
 
 I leave the ```__str__``` and ```__repr__``` methods to you. 

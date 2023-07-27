@@ -9,9 +9,42 @@ import lex
 import expr
 import io
 
+BINOPS = {lex.TokenCat.PLUS: expr.Plus,
+          lex.TokenCat.TIMES: expr.Times,
+          lex.TokenCat.DIV: expr.Div,
+          lex.TokenCat.MINUS: expr.Minus
+         }
+
+UNOPS = {lex.TokenCat.ABS: expr.Abs,
+         lex.TokenCat.NEG: expr.Neg
+        }
 
 def calc(text: str):
     """Read and evaluate a single line formula."""
+    try:
+        stack = rpn_parse(text)
+        if len(stack) == 0:
+            print("(No expression)")
+        else:
+            # For a balanced expression there will be one Expr object
+            # on the stack, but if there are more we'll just print
+            # each of them
+            for exp in stack:
+                print(f"{exp} => {exp.eval()}")
+    except Exception as e:
+        print(e)
+
+def rpn_parse(text: str) -> list[expr.Expr]:
+    """Parse text in reverse Polish notation
+    into a list of expressions (exactly one if
+    the expression is balanced).
+    Example:
+        rpn_parse("5 3 + 4 * 7")
+          => [ Times(Plus(IntConst(5), IntConst(3)), IntConst(4)))),
+               IntConst(7) ]
+    May raise:  ValueError for lexical or syntactic error in input
+    """
+
     try:
         tokens = lex.TokenStream(io.StringIO(text))
         stack = [ ]
@@ -19,25 +52,29 @@ def calc(text: str):
             tok = tokens.take()
             if tok.kind == lex.TokenCat.INT:
                 stack.append(expr.IntConst(int(tok.value)))
-            elif tok.kind == lex.TokenCat.PLUS:
+            elif tok.kind in BINOPS:
+                binop_class = BINOPS[tok.kind]
                 right = stack.pop()
                 left = stack.pop()
-                stack.append(expr.Plus(left, right))
+                stack.append(binop_class(left, right))
+            elif tok.kind in UNOPS:
+                unop_class = UNOPS[tok.kind]
+                value = stack.pop()
+                stack.append(unop_class(value))
+            elif tok.kind == lex.TokenCat.VAR:
+                stack.append(expr.Var(tok.value))
+            elif tok.kind == lex.TokenCat.ASSIGN:
+                right = stack.pop()
+                left = stack.pop()
+                # Reverse left and right
+                stack.append(expr.Assign(right, left))
     except lex.LexicalError as e:
         raise ValueError(f"Lexical error {e}")
-        return
     except IndexError:
         # Stack underflow means the expression was imbalanced
         raise ValueError(f"Imbalanced RPN expression, missing operand at {tok.value}")
-        return
-    if len(stack) == 0:
-        print("(No expression)")
-    else:
-        # For a balanced expression there will be one Expr object
-        # on the stack, but if there are more we'll just evaluate
-        # and print each of them
-        for exp in stack:
-            print(f"{exp} => {exp.eval()}")
+    return stack
+
 
 def rpn_calc():
     txt = input("Expression (return to quit):")
@@ -45,7 +82,6 @@ def rpn_calc():
         calc(txt)
         txt = input("Expression (return to quit):")
     print("Bye! Thanks for the math!")
-
 
 
 if __name__ == "__main__":
